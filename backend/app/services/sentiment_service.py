@@ -12,7 +12,10 @@ _DEFAULT_MODEL_DIR = (
     / "distilbert_imdb_model"
 )
 _MODEL_DIR = Path(os.getenv("MODEL_DIR", str(_DEFAULT_MODEL_DIR))).expanduser()
-_MODEL_ID = os.getenv("MODEL_ID", "distilbert-base-uncased-finetuned-sst-2-english").strip()
+_MODEL_ID = os.getenv(
+    "MODEL_ID",
+    "sshleifer/tiny-distilbert-base-uncased-finetuned-sst-2-english",
+).strip()
 
 _WEIGHT_FILES = (
     list(_MODEL_DIR.glob("*.bin"))
@@ -20,25 +23,34 @@ _WEIGHT_FILES = (
     + list(_MODEL_DIR.glob("*.pt"))
 )
 
-_use_local_model = _MODEL_DIR.exists() and bool(_WEIGHT_FILES)
+_classifier = None
 
-if _use_local_model:
-    _tokenizer = AutoTokenizer.from_pretrained(_MODEL_DIR)
-    _model = AutoModelForSequenceClassification.from_pretrained(_MODEL_DIR)
-else:
-    # Render-friendly fallback: load model by ID when local weights are unavailable.
-    _tokenizer = AutoTokenizer.from_pretrained(_MODEL_ID)
-    _model = AutoModelForSequenceClassification.from_pretrained(_MODEL_ID)
 
-_model.eval()
+def _get_classifier():
+    global _classifier
+    if _classifier is not None:
+        return _classifier
 
-classifier = pipeline(
-    "sentiment-analysis",
-    model=_model,
-    tokenizer=_tokenizer
-)
+    use_local_model = _MODEL_DIR.exists() and bool(_WEIGHT_FILES)
+    if use_local_model:
+        tokenizer = AutoTokenizer.from_pretrained(_MODEL_DIR)
+        model = AutoModelForSequenceClassification.from_pretrained(_MODEL_DIR)
+    else:
+        # Low-memory fallback for free-tier deployments.
+        tokenizer = AutoTokenizer.from_pretrained(_MODEL_ID)
+        model = AutoModelForSequenceClassification.from_pretrained(_MODEL_ID)
+
+    model.eval()
+    _classifier = pipeline(
+        "sentiment-analysis",
+        model=model,
+        tokenizer=tokenizer,
+        device=-1,
+    )
+    return _classifier
 
 def analyze_texts(texts: list[str]):
+    classifier = _get_classifier()
     results = []
     positive_count = 0
     negative_count = 0
