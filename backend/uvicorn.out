@@ -1,0 +1,5 @@
+INFO:     127.0.0.1:49884 - "POST /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63646 - "OPTIONS /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63646 - "POST /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58254 - "POST /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58495 - "POST /predict HTTP/1.1" 200 OK
