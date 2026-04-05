@@ -12,6 +12,7 @@ _DEFAULT_MODEL_DIR = (
     / "distilbert_imdb_model"
 )
 _MODEL_DIR = Path(os.getenv("MODEL_DIR", str(_DEFAULT_MODEL_DIR))).expanduser()
+_MODEL_ID = os.getenv("MODEL_ID", "distilbert-base-uncased-finetuned-sst-2-english").strip()
 
 _WEIGHT_FILES = (
     list(_MODEL_DIR.glob("*.bin"))
@@ -19,21 +20,16 @@ _WEIGHT_FILES = (
     + list(_MODEL_DIR.glob("*.pt"))
 )
 
-if not _MODEL_DIR.exists():
-    raise RuntimeError(
-        f"Model directory not found: {_MODEL_DIR}. "
-        "Set MODEL_DIR environment variable to the folder containing the tokenizer/model files."
-    )
+_use_local_model = _MODEL_DIR.exists() and bool(_WEIGHT_FILES)
 
-if not _WEIGHT_FILES:
-    raise RuntimeError(
-        f"No model weights found in {_MODEL_DIR}. "
-        "Place the fine-tuned weights file (e.g., pytorch_model.bin or model.safetensors) "
-        "in that directory."
-    )
+if _use_local_model:
+    _tokenizer = AutoTokenizer.from_pretrained(_MODEL_DIR)
+    _model = AutoModelForSequenceClassification.from_pretrained(_MODEL_DIR)
+else:
+    # Render-friendly fallback: load model by ID when local weights are unavailable.
+    _tokenizer = AutoTokenizer.from_pretrained(_MODEL_ID)
+    _model = AutoModelForSequenceClassification.from_pretrained(_MODEL_ID)
 
-_tokenizer = AutoTokenizer.from_pretrained(_MODEL_DIR)
-_model = AutoModelForSequenceClassification.from_pretrained(_MODEL_DIR)
 _model.eval()
 
 classifier = pipeline(
