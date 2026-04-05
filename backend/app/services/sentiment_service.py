@@ -1,8 +1,9 @@
+import os
 from pathlib import Path
 
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 
-_MODEL_DIR = (
+_DEFAULT_MODEL_DIR = (
     Path(__file__)
     .resolve()
     .parents[3]
@@ -10,6 +11,7 @@ _MODEL_DIR = (
     / "sentimentModel"
     / "distilbert_imdb_model"
 )
+_MODEL_DIR = Path(os.getenv("MODEL_DIR", str(_DEFAULT_MODEL_DIR))).expanduser()
 
 _WEIGHT_FILES = (
     list(_MODEL_DIR.glob("*.bin"))
@@ -19,9 +21,8 @@ _WEIGHT_FILES = (
 
 if not _MODEL_DIR.exists():
     raise RuntimeError(
-        f"Local model directory not found: {_MODEL_DIR}. "
-        "Expected the repo 'Sentiment-Analysis-Engine-for-Movie-Reviews-main' "
-        "to be copied into the 'sentiment-analyzer' root."
+        f"Model directory not found: {_MODEL_DIR}. "
+        "Set MODEL_DIR environment variable to the folder containing the tokenizer/model files."
     )
 
 if not _WEIGHT_FILES:
